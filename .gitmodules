@@ -1,0 +1,4 @@
+[submodule "thirdparty/matrix"]
+	path = thirdparty/matrix
+	url = https://github.com/ithamsteri/otus_matrix
+	branch = master

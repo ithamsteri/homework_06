@@ -1,0 +1,50 @@
+dist: trusty
+sudo: required
+language: cpp
+
+matrix:
+  include:
+    # Linux and Clang 6
+    - os: linux
+      compiler: clang
+      env: COMPILER=clang++-6.0
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-6.0']
+          packages: ['g++-6', 'clang-6.0', 'ninja-build']
+    # Linux and GCC 8 (Deploy build)
+    - os: linux
+      compiler: gcc
+      env:
+      - COMPILER=g++-8
+      - DEPLOY=ON
+      addons:
+        apt:
+          sources: ['ubuntu-toolchain-r-test']
+          packages: ['g++-8', 'ninja-build']
+
+script:
+  # make sure CXX is correctly set
+  - if [[ "${COMPILER}" != "" ]]; then export CXX=${COMPILER}; fi
+
+  # build and make deb-package
+  - cmake -GNinja -H. -Bbuild -DCMAKE_BUILD_TYPE=Release
+  - cmake --build build
+  - cmake --build build --target package
+
+deploy:
+  - provider: script
+    skip_cleanup: true
+    script:
+    - curl -T matrix-0.0.$TRAVIS_BUILD_NUMBER-Linux.deb -uithamsteri:$BINTRAY_API_KEY "https://api.bintray.com/content/hamsterisoftware/deb-repo/matrix/0.0.$TRAVIS_BUILD_NUMBER/pool/main/m/matrix-0.0.$TRAVIS_BUILD_NUMBER-Linux.deb;deb_distribution=trusty;deb_component=main;deb_architecture=amd64;publish=1;override=1"
+    on:
+      branch: master
+      condition: $DEPLOY = ON
+
+notifications:
+  webhooks:
+    urls:
+      - https://integrations.bonbotics.io/travis/webhook/BJGsZDNGYNbeNdEACGGQ9Sq4m3RAQqpnj6YbLzyhjmA
+    on_success: always
+    on_failure: always
+    on_start: never
